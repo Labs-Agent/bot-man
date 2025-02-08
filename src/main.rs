@@ -7,6 +7,7 @@ extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
@@ -25,7 +26,13 @@ async fn main() {
 
     let message = "Hello";
 
-    info!("connecting to agent...");
+
+    let response =
+        agent::get_agent_response(&agent_url, &autonome_user, &autonome_password, message)
+            .await
+            .expect("Failed to get response from agent");
+
+  info!("connecting to agent...");
     let response = agent::get_agent_response(
         &agent_url,
         &autonome_user,
