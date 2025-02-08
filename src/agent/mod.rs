@@ -1,34 +1,46 @@
 use serde_json::json;
 use std::{error::Error, time::Duration};
 
-pub async fn get_agent_response(
-    agent_url: &str,
-    username: &str,
-    password: &str,
-    query: &str,
-) -> Result<String, Box<dyn Error>> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()?;
+pub struct Agent {
+    url: String,
+    username: String,
+    password: String,
+}
 
-    let payload = json!({
-        "text": query,
-    });
+impl Agent {
+    pub fn new(url: String, username: String, password: String) -> Self {
+        Self {
+            url,
+            username,
+            password,
+        }
+    }
 
-    let request = client
-        .post(agent_url)
-        .basic_auth(username, Some(password))
-        .header("Content-Type", "application/json")
-        .body(payload.to_string())
-        .send()
-        .await?;
+    pub async fn get_response(&self, query: &str) -> Result<String, Box<dyn Error>> {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()?;
 
-    let response = request.text().await?;
-    let response: serde_json::Value = serde_json::from_str(&response)?;
-    let response = response[0]["text"].as_str();
+        let payload = json!({
+            "text": query,
+        });
 
-    match response {
-        Some(text) => Ok(text.to_string()),
-        None => Err("No response text found".into()),
+        let request = client
+            .post(&self.url)
+            .basic_auth(&self.username, Some(&self.password))
+            .header("Content-Type", "application/json")
+            .body(payload.to_string())
+            .send()
+            .await?;
+
+        // println!("response: {}", request);
+        let response = request.text().await?;
+        let response: serde_json::Value = serde_json::from_str(&response)?;
+        let response = response[0]["text"].as_str();
+
+        match response {
+            Some(text) => Ok(text.to_string()),
+            None => Err("No response text found".into()),
+        }
     }
 }

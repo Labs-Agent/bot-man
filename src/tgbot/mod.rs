@@ -1,17 +1,39 @@
+use std::env;
+
 use log::info;
 use teloxide::{
     dispatching::{UpdateFilterExt, UpdateHandler},
     prelude::*,
 };
 
+use crate::agent;
+
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
 async fn hello_world(bot: Bot, message: Message) -> HandlerResult {
-    bot.send_message(message.chat.id, "Hello World!").await?;
+    info!("Received a message: {:?}", message.text());
+    if let Some(msg) = message.text() {
+
+        info!("sending message=\"{}\" to agent...", msg);
+
+        let agent_url = env::var("AGENT_URL").expect("AGENT_URL must be set");
+        let autonome_user = env::var("AUTONOME_USER").expect("AUTONOME_USER must be set");
+        let autonome_password =
+            env::var("AUTONOME_PASSWORD").expect("AUTONOME_PASSWORD must be set");
+
+        info!("connecting to agent...");
+
+        let res =
+            agent::get_agent_response(&agent_url, &autonome_user, &autonome_password, msg)
+                .await
+                .expect("Failed to get response from agent");
+
+        info!("response from agent: {}", res);
+
+        bot.send_message(message.chat.id, res).await?;
+    }
     Ok(())
 }
-
-// async fn
 
 fn handler_tree() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'static>> {
     // A simple handler. But you need to make it into a separate thing!
