@@ -13,26 +13,24 @@ async fn main() {
     dotenvy::dotenv().ok();
 
     if env::var_os("RUST_LOG").is_none() {
-        env::set_var("RUST_LOG", "trace");
+        env::set_var("RUST_LOG", "info");
     }
 
     pretty_env_logger::init();
 
-    env::remove_var("RUST_APP_LOG");
-    
     let agent_url = env::var("AGENT_URL").expect("AGENT_URL must be set");
     let autonome_user = env::var("AUTONOME_USER").expect("AUTONOME_USER must be set");
     let autonome_password = env::var("AUTONOME_PASSWORD").expect("AUTONOME_PASSWORD must be set");
 
-    let message = "Hello";
+    let message = "how are you doing?";
 
+    // let response =
+    //     agent::get_agent_response(&agent_url, &autonome_user, &autonome_password, message)
+    //         .await
+    //         .expect("Failed to get response from agent");
 
-    let response =
-        agent::get_agent_response(&agent_url, &autonome_user, &autonome_password, message)
-            .await
-            .expect("Failed to get response from agent");
+    info!("connecting to agent...");
 
-  info!("connecting to agent...");
     let response = agent::get_agent_response(
         &agent_url,
         &autonome_user,
@@ -45,4 +43,5 @@ async fn main() {
     info!("starting the bot...");
 
     tgbot::deploy().await;
+
 }

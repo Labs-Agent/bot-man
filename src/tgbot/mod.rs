@@ -1,3 +1,4 @@
+use log::info;
 use teloxide::{
     dispatching::{UpdateFilterExt, UpdateHandler},
     prelude::*,
@@ -19,6 +20,8 @@ fn handler_tree() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'st
 
 pub async fn deploy() {
     let bot = Bot::from_env();
+
+    info!("bot connected!");
 
     Dispatcher::builder(bot, handler_tree())
         .enable_ctrlc_handler()
