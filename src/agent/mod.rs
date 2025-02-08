@@ -1,7 +1,7 @@
 use serde_json::json;
 use std::{error::Error, time::Duration};
 
-pub fn get_agent_response(
+pub async fn get_agent_response(
     agent_url: &str,
     username: &str,
     password: &str,

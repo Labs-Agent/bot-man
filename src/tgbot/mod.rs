@@ -10,6 +10,8 @@ async fn hello_world(bot: Bot, message: Message) -> HandlerResult {
     Ok(())
 }
 
+// async fn
+
 fn handler_tree() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'static>> {
     // A simple handler. But you need to make it into a separate thing!
     dptree::entry().branch(Update::filter_message().endpoint(hello_world))
