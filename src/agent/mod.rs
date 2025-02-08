@@ -7,7 +7,7 @@ pub async fn get_agent_response(
     password: &str,
     query: &str,
 ) -> Result<String, Box<dyn Error>> {
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()?;
 
@@ -20,9 +20,10 @@ pub async fn get_agent_response(
         .basic_auth(username, Some(password))
         .header("Content-Type", "application/json")
         .body(payload.to_string())
-        .send()?;
+        .send()
+        .await?;
 
-    let response = request.text()?;
+    let response = request.text().await?;
     let response: serde_json::Value = serde_json::from_str(&response)?;
     let response = response[0]["text"].as_str();
 
