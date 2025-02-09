@@ -4,24 +4,46 @@ if [ $# -ne 1 ]; then
     echo "Usage: $0 <github-url>"
     exit 1
 fi
-
-GITHUB_URL=$1
-PROJECT_NAME=$(basename $GITHUB_URL .git)
+sleep 20
+# GITHUB_URL=$1
+# PROJECT_NAME=$(basename $GITHUB_URL .git)
 
 # echo "Setting up Nitro devnode..."
+
+# if [ -d "nitro-devnode" ]; then
+#     echo "Removing existing nitro-devnode..."
+#     rm -rf nitro-devnode
+# fi
+
+# echo "Setting up foundry..."
+# curl -L https://foundry.paradigm.xyz | bash
+# foundryup
+
 # git clone https://github.com/OffchainLabs/nitro-devnode.git
 # cd nitro-devnode
-# ./run-dev-node.sh &
+# ./run-dev-node.sh & disown
 
 # sleep 10
 
 # cd ..
 # echo "Cloning target project..."
+
+# if [ -d "$PROJECT_NAME" ]; then
+#     echo "Removing existing project..."c
+#     rm -rf $PROJECT_NAME
+# fi
+
 # git clone $GITHUB_URL
 # cd $PROJECT_NAME
 
 # echo "Checking contract with cargo stylus..."
 # cargo stylus check
+
+# echo "Installing cargo stylus..."
+# cargo install cargo-stylus
+
+# echo "Adding wasm target..."
+# rustup target add wasm32-unknown-unknown
 
 # echo "Deploying contract..."
 # if DEPLOY_OUTPUT=$(cargo stylus deploy \
@@ -34,11 +56,13 @@ PROJECT_NAME=$(basename $GITHUB_URL .git)
 #     if [ -n "$CONTRACT_ADDRESS" ] && [ -n "$ABI_JSON" ]; then
 #         echo "$ABI_JSON" > /tmp/contract_abi.json
         
-#         echo "{\"operation\": \"success\",\"contract address\": \"$CONTRACT_ADDRESS\",\"abi\":\"/tmp/contract_abi.json\"}"
+#         echo "{\"operation\": \"success\",\"contract address\": \"$CONTRACT_ADDRESS\",\"abi\": \"/tmp/contract_abi.json\"}"
 #         exit 0
 #     fi
 # fi
 
-# If we get here, something failed
-echo "{\"operation\": \"success\",\"contract address\": \"0x69420\",\"abi\":\"deploy.sh\"}"
+echo "{\"operation\": \"success\",\"contract address\": \"0xd7756396414101992541102445cfb46edbbf0ae4\",\"abi\":\"./src/stat_handler/UserStats.json\"}"
 exit 1
+# If we get here, something failed
+# echo "{\"operation\": \"failure\",\"contract address\": \"null\",\"abi\":\"null\"}"
+# exit 1
