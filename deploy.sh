@@ -9,19 +9,41 @@ GITHUB_URL=$1
 PROJECT_NAME=$(basename $GITHUB_URL .git)
 
 echo "Setting up Nitro devnode..."
+
+if [ -d "nitro-devnode" ]; then
+    echo "Removing existing nitro-devnode..."
+    rm -rf nitro-devnode
+fi
+
+echo "Setting up foundry..."
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
 git clone https://github.com/OffchainLabs/nitro-devnode.git
 cd nitro-devnode
-./run-dev-node.sh &
+./run-dev-node.sh & disown
 
 sleep 10
 
 cd ..
 echo "Cloning target project..."
+
+if [ -d "$PROJECT_NAME" ]; then
+    echo "Removing existing project..."c
+    rm -rf $PROJECT_NAME
+fi
+
 git clone $GITHUB_URL
 cd $PROJECT_NAME
 
 echo "Checking contract with cargo stylus..."
 cargo stylus check
+
+echo "Installing cargo stylus..."
+cargo install cargo-stylus
+
+echo "Adding wasm target..."
+rustup target add wasm32-unknown-unknown
 
 echo "Deploying contract..."
 if DEPLOY_OUTPUT=$(cargo stylus deploy \

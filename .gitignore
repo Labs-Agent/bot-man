@@ -22,3 +22,7 @@ Cargo.lock
 
 # .env file
 .env
+
+# nitro
+nitro-*
+
