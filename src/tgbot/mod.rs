@@ -6,7 +6,10 @@ use teloxide::{
     prelude::*,
 };
 
+use teloxide::{prelude::*, utils::command::BotCommands};
+
 use crate::agent;
+use crate::stats::*;
 
 
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
@@ -39,11 +42,14 @@ pub async fn deploy() {
 
     info!("bot connected!");
 
-    Dispatcher::builder(bot, handler_tree())
-        .enable_ctrlc_handler()
-        .build()
-        .dispatch()
-        .await;
+    // Dispatcher::builder(bot, handler_tree())
+    //     .enable_ctrlc_handler()
+    //     .build()
+    //     .dispatch()
+    //     .await;
+
+    Command::repl(bot, answer_to_commands).await;
+
 }
 
 #[cfg(test)]
