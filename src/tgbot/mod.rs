@@ -38,7 +38,7 @@ async fn autonome_eliza(bot: Bot, message: Message) -> HandlerResult {
 
         info!("response from agent: {}", res);
 
-        let (res, isfile, file_path) = middleman::main_middleman(res);
+        let (res, isfile, file_path) = middleman::main_middleman(res).await;
         if isfile {
             send_file(bot, message, file_path, res).await?;
         } else {
