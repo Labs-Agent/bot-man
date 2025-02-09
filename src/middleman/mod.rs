@@ -74,7 +74,7 @@ fn state_machine(command: String, error: String) -> String {
             response.push_str(&format!("cov stopflow {} success", flow_number));
         }
         _ => {
-            response.push_str(&format!("error: {}", error));
+            response.push_str(&format!("{}", error));
         }
     }
     response
@@ -92,7 +92,6 @@ pub fn main_middleman(inferred_json: String) -> String {
     let error = res["error"].as_str().unwrap();
     let response = state_machine(response.to_string(), error.to_string());
     let mut final_response = String::new();
-    final_response.push_str("\nCommand: ");
     final_response.push_str(response.as_str());
     final_response
 }
