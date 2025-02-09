@@ -7,7 +7,7 @@ use teloxide::{
 };
 
 use crate::agent;
-
+use crate::middleman;
 
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
@@ -24,6 +24,8 @@ async fn hello_world(bot: Bot, message: Message) -> HandlerResult {
         let res = agent.get_response(&msg).await.unwrap();
 
         info!("response from agent: {}", res);
+
+        let res = middleman::main_middleman(res);
 
         bot.send_message(message.chat.id, res).send().await?;
     }
