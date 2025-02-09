@@ -22,3 +22,5 @@ Cargo.lock
 
 # .env file
 .env
+nitro-devnode/
+stylus-contracts/

@@ -5,7 +5,7 @@ fn as_gigabytes(bytes: u64) -> f64 {
     (bytes as f64) / (1024.00 * 1024.00 * 1024.00)
 }
 
-fn get_stats() -> Value {
+pub fn get_stats() -> Value {
     let mut system = System::new_all();
     system.refresh_all();
     let available_memory = (as_gigabytes(system.available_memory()) * 100.0).round() / 100.0;

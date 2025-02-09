@@ -3,7 +3,8 @@ use std::env;
 use log::info;
 use teloxide::{
     dispatching::{UpdateFilterExt, UpdateHandler},
-    prelude::*, types::InputFile,
+    prelude::*,
+    types::InputFile,
 };
 
 use crate::agent;
@@ -11,10 +12,14 @@ use crate::middleman;
 
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
-async fn send_file(bot: Bot, message: Message, filepath: String) -> HandlerResult {
-    info!("sending file=\"{}\" to chat_id={}", filepath, message.chat.id);
+async fn send_file(bot: Bot, message: Message, filepath: String, actual_message: String) -> HandlerResult {
+    info!(
+        "sending file=\"{}\" to chat_id={}",
+        filepath, message.chat.id
+    );
     let file = InputFile::file(filepath);
     bot.send_document(message.chat.id, file).send().await?;
+    bot.send_message(message.chat.id, actual_message).send().await?;
     Ok(())
 }
 
@@ -24,17 +29,21 @@ async fn autonome_eliza(bot: Bot, message: Message) -> HandlerResult {
 
         let agent_url = env::var("AGENT_URL").expect("AGENT_URL must be set");
         let autonome_user = env::var("AUTONOME_USER").expect("AUTONOME_USER must be set");
-        let autonome_password = env::var("AUTONOME_PASSWORD").expect("AUTONOME_PASSWORD must be set");
+        let autonome_password =
+            env::var("AUTONOME_PASSWORD").expect("AUTONOME_PASSWORD must be set");
 
-        let agent= agent::Agent::new(agent_url, autonome_user, autonome_password);
+        let agent = agent::Agent::new(agent_url, autonome_user, autonome_password);
 
         let res = agent.get_response(&msg).await.unwrap();
 
         info!("response from agent: {}", res);
 
-        let res = middleman::main_middleman(res);
-
-        bot.send_message(message.chat.id, res).send().await?;
+        let (res, isfile, file_path) = middleman::main_middleman(res);
+        if isfile {
+            send_file(bot, message, file_path, res).await?;
+        } else {
+            bot.send_message(message.chat.id, res).send().await?;
+        }
     }
     Ok(())
 }

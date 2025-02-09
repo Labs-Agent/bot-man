@@ -1,9 +1,8 @@
+use crate::stats::send_stats;
 use serde_json::json;
 use std::env;
 use std::process::Command;
 use std::str;
-use crate::stats::send_stats;
-
 
 fn string_to_json(input: String) -> serde_json::Value {
     let res = match serde_json::from_str(&input) {
@@ -11,7 +10,7 @@ fn string_to_json(input: String) -> serde_json::Value {
         Err(_) => json!({
             "node": "",
             "command": "",
-            "error": ""
+            "error": "Command Not Processed"
         }),
     };
     let mut res = res.as_object().unwrap().clone();
@@ -27,7 +26,7 @@ fn string_to_json(input: String) -> serde_json::Value {
     serde_json::Value::Object(res)
 }
 
-fn state_machine(command: String, error: String) -> String {
+fn state_machine(command: String, error: String) -> (String, bool, String) {
     let mut response = String::new();
     match command.as_str() {
         "/stats" => {
@@ -73,27 +72,62 @@ fn state_machine(command: String, error: String) -> String {
             let flow_number = command.trim_start_matches("/cov stopflow ");
             response.push_str(&format!("cov stopflow {} success", flow_number));
         }
+        "/cov info" => {
+            response.push_str("cov info success");
+        }
+        command if command.starts_with("/run ") => {
+            let command = command.trim_start_matches("/run ");
+            let output = Command::new("sh").arg("-c").arg(command).output();
+            match output {
+                Ok(output) => {
+                    let stdout = str::from_utf8(&output.stdout).expect("Failed to read stdout");
+                    response.push_str(stdout);
+                }
+                Err(e) => response.push_str(&format!("{}", e)),
+            }
+        }
+        command if (command).starts_with("/deploy") => {
+            let github_url = command.trim_start_matches("/deploy ");
+            let output = Command::new("sh")
+                .arg("-c")
+                .arg(format!("sh deploy.sh {}", github_url))
+                .output();
+            match output {
+                Ok(output) => {
+                    let stdout = str::from_utf8(&output.stdout).expect("Failed to read stdout");
+                    let lines: Vec<&str> = stdout.lines().collect();
+                    let last_line = lines.last().unwrap();
+                    let res = string_to_json(last_line.to_string());
+                    return (
+                        format!("This is the contract address of your deployment: {}\n", res["contract address"].as_str().unwrap().to_string()),
+                        true,
+                        res["abi"].as_str().unwrap().to_string(),
+                    );
+                }
+                Err(e) => response.push_str(&format!("{}", e)),
+            }
+        }
         _ => {
             response.push_str(&format!("{}", error));
         }
     }
-    response
+    (response, false, "".to_string())
 }
 
-pub fn main_middleman(inferred_json: String) -> String {
+pub fn main_middleman(inferred_json: String) -> (String, bool, String) {
     let res = string_to_json(inferred_json);
     println!("{:?}", res);
     let node_number = env::var("NODE_NUMBER").expect("NODE_NUMBER must be set");
     let node = res["node"].as_str().unwrap();
     if node != node_number {
-        return "Wrong node requested".to_string();
+        return ("Wrong node requested".to_string(), false, "".to_string());
     }
     let response = res["command"].as_str().unwrap();
     let error = res["error"].as_str().unwrap();
-    let response = state_machine(response.to_string(), error.to_string());
+    let (response, isfile, file_path) = state_machine(response.to_string(), error.to_string());
     let mut final_response = String::new();
     final_response.push_str(response.as_str());
-    final_response
+    (final_response, isfile, file_path)
 }
 
 #[cfg(test)]
@@ -101,10 +135,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_state_machine_run_deploy() {
+        let command = "/deploy git@github.com:plswork/plswork.git".to_string();
+        let expected = "lauda".to_string();
+        let (result, isfile, filename) = state_machine(command, "".to_string());
+        println!("isFile : {}", isfile);
+        println!("filename : {}", filename);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_state_machine_run_command() {
+        let command = "/run echo hello".to_string();
+        let expected = "hello\n".to_string();
+        let (result, _, _) = state_machine(command, "".to_string());
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_state_machine_0() {
         let command = "/gaia start".to_string();
         let expected = "gaia start success".to_string();
-        let result = state_machine(command, "".to_string());
+        let (result, _, _) = state_machine(command, "".to_string());
         assert_eq!(result, expected);
     }
 
@@ -112,22 +164,21 @@ mod tests {
     fn test_state_machine_0_1() {
         let command = "/gaia stop".to_string();
         let expected = "gaia stop success".to_string();
-        let result = state_machine(command, "".to_string());
+        let (result, _, _) = state_machine(command, "".to_string());
         assert_eq!(result, expected);
     }
 
     #[test]
     fn test_state_machine_1() {
         let command = "/stats".to_string();
-        let expected = "stats success".to_string();
-        let result = state_machine(command, "".to_string());
-        assert_eq!(result, expected);
+        let (result, _, _) = state_machine(command, "".to_string());
+        assert!(result.contains("CPU"));
     }
 
     #[test]
     fn test_state_machine_2() {
         let command = "/error".to_string();
-        let result = state_machine(command, "this is an error".to_string());
+        let (result, _, _) = state_machine(command, "this is an error".to_string());
         assert_eq!(result, "error: this is an error".to_string());
     }
 
@@ -150,7 +201,7 @@ mod tests {
         let expected = json!({
             "node": "1",
             "command": "test command",
-            "error": ""
+            "error": "Command Not Processed"
         });
         let result = string_to_json(inferred_json);
         assert_eq!(result, expected);
@@ -161,7 +212,7 @@ mod tests {
         let expected = json!({
             "node": "1",
             "command": "",
-            "error": ""
+            "error": "Command Not Processed"
         });
         let result = string_to_json(inferred_json);
         assert_eq!(result, expected);
@@ -171,7 +222,7 @@ mod tests {
         let inferred_json =
             String::from("{\"command\":\"test command\",\"error\":\"this is an error\"}");
         let expected = json!({
-            "node": "",
+            "node": "1",
             "command": "test command",
             "error": "this is an error"
         });
