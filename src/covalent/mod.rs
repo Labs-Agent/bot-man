@@ -2,16 +2,22 @@ use reqwest::Client;
 use std::error::Error;
 
 pub fn start_server() -> Result<(), Box<dyn Error>> {
-    let output = std::process::Command::new("sh")
+    let mut child = std::process::Command::new("sh")
         .arg("-c")
         .arg("cd ../bot-man-agent && npm start")
-        .output()?;
+        .spawn()?;
 
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err("Failed to start npm server".into())
+    // Wait 3 seconds
+    std::thread::sleep(std::time::Duration::from_secs(3));
+
+    // Check if the process has already exited with an error.
+    if let Some(status) = child.try_wait()? {
+        if !status.success() {
+            return Err("Npm server exited with an error".into());
+        }
     }
+
+    Ok(())
 }
 
 pub fn stop_server() -> Result<(), Box<dyn Error>> {
@@ -19,6 +25,7 @@ pub fn stop_server() -> Result<(), Box<dyn Error>> {
         .arg("-c")
         .arg("cd ../bot-man-agent && npm stop")
         .output()?;
+
     if output.status.success() {
         Ok(())
     } else {
@@ -82,6 +89,8 @@ pub async fn run_workflow(url: String, prompt: String) -> Result<String, Box<dyn
     let payload = serde_json::json!({
         "prompt": prompt,
     });
+
+    let url = format!("{}/api/workflows/prompt/3", url);
 
     let resp = client
         .post(url)

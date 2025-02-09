@@ -1,9 +1,12 @@
-use crate::{covalent::{get_available_workflows, run_workflow}, stats::send_stats};
+use crate::covalent::{self, start_server};
+use crate::{
+    covalent::{get_available_workflows, run_workflow},
+    stats::send_stats,
+};
 use serde_json::json;
 use std::env;
 use std::process::Command;
 use std::str;
-use crate::covalent::{self, start_server};
 
 fn string_to_json(input: String) -> serde_json::Value {
     let res = match serde_json::from_str(&input) {
@@ -82,7 +85,11 @@ async fn state_machine(command: String, error: String) -> (String, bool, String)
         //TODO:write test for this
         command if command.starts_with("/cov flow ") => {
             let flow_number = command.trim_start_matches("/cov flow ");
-            let output = covalent::create_workflow("http://localhost:3000".to_string(), flow_number.parse().unwrap()).await;
+            let output = covalent::create_workflow(
+                "http://localhost:3000".to_string(),
+                flow_number.parse().unwrap(),
+            )
+            .await;
             match output {
                 Ok(url) => {
                     response.push_str(&format!("cov flow {} success\n", flow_number));
@@ -94,7 +101,11 @@ async fn state_machine(command: String, error: String) -> (String, bool, String)
         //TODO:write test for this
         command if command.starts_with("/cov stopflow ") => {
             let flow_number = command.trim_start_matches("/cov stopflow ");
-            let output = covalent::delete_workflow("http://localhost:3000".to_string(), flow_number.parse().unwrap()).await;
+            let output = covalent::delete_workflow(
+                "http://localhost:3000".to_string(),
+                flow_number.parse().unwrap(),
+            )
+            .await;
             match output {
                 Ok(_) => {
                     response.push_str(&format!("cov stopflow {} success", flow_number));
@@ -118,7 +129,8 @@ async fn state_machine(command: String, error: String) -> (String, bool, String)
         //TODO:write test for this
         command if command.starts_with("/cov run ") => {
             let prompt = command.trim_start_matches("/cov run ");
-            let output = run_workflow("http://localhost:3000".to_string(), prompt.to_string()).await;
+            let output =
+                run_workflow("http://localhost:3000".to_string(), prompt.to_string()).await;
             match output {
                 Ok(res) => {
                     response.push_str(&format!("This is the response of your workflow: {}", res));
@@ -150,7 +162,10 @@ async fn state_machine(command: String, error: String) -> (String, bool, String)
                     let last_line = lines.last().unwrap();
                     let res = string_to_json(last_line.to_string());
                     return (
-                        format!("This is the contract address of your deployment: {}\n", res["contract address"].as_str().unwrap().to_string()),
+                        format!(
+                            "This is the contract address of your deployment: {}\n",
+                            res["contract address"].as_str().unwrap().to_string()
+                        ),
                         true,
                         res["abi"].as_str().unwrap().to_string(),
                     );
@@ -175,7 +190,8 @@ pub async fn main_middleman(inferred_json: String) -> (String, bool, String) {
     }
     let response = res["command"].as_str().unwrap();
     let error = res["error"].as_str().unwrap();
-    let (response, isfile, file_path) = state_machine(response.to_string(), error.to_string()).await;
+    let (response, isfile, file_path) =
+        state_machine(response.to_string(), error.to_string()).await;
     let mut final_response = String::new();
     final_response.push_str(response.as_str());
     (final_response, isfile, file_path)
@@ -225,6 +241,34 @@ mod tests {
         let command = "/stats".to_string();
         let (result, _, _) = state_machine(command, "".to_string()).await;
         assert!(result.contains("CPU"));
+    }
+
+    #[tokio::test]
+    async fn test_state_machine_cov_start() {
+        let command = "/cov start".to_string();
+        let (result, _, _) = state_machine(command, "".to_string()).await;
+        assert_eq!(result, "cov start success".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_state_machine_cov_stop() {
+        let command = "/cov stop".to_string();
+        let (result, _, _) = state_machine(command, "".to_string()).await;
+        assert_eq!(result, "cov stop success".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_state_machine_cov_info() {
+        let command = "/cov info".to_string();
+        let (result, _, _) = state_machine(command, "".to_string()).await;
+        assert!(result.contains("Available workflows"));
+    }
+
+    #[tokio::test]
+    async fn test_state_machine_cov_flow() {
+        let command = "/cov flow 3".to_string();
+        let (result, _, _) = state_machine(command, "".to_string()).await;
+        assert!(result.contains("cov flow 3 success"));
     }
 
     #[tokio::test]
