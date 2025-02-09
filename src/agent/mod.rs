@@ -18,7 +18,7 @@ impl Agent {
 
     pub async fn get_response(&self, query: &str) -> Result<String, Box<dyn Error>> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(60))
             .build()?;
 
         let payload = json!({
