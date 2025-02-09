@@ -2,6 +2,8 @@ use serde_json::json;
 use std::env;
 use std::process::Command;
 use std::str;
+use crate::stats::send_stats;
+
 
 fn string_to_json(input: String) -> serde_json::Value {
     let res = match serde_json::from_str(&input) {
@@ -29,7 +31,7 @@ fn state_machine(command: String, error: String) -> String {
     let mut response = String::new();
     match command.as_str() {
         "/stats" => {
-            response.push_str("stats success");
+            response.push_str(&send_stats());
         }
         "/error" => {
             response.push_str(&format!("error: {}", error));
