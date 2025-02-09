@@ -3,7 +3,7 @@ use std::env;
 use log::info;
 use teloxide::{
     dispatching::{UpdateFilterExt, UpdateHandler},
-    prelude::*,
+    prelude::*, types::InputFile,
 };
 
 use crate::agent;
@@ -11,7 +11,14 @@ use crate::middleman;
 
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
-async fn hello_world(bot: Bot, message: Message) -> HandlerResult {
+async fn send_file(bot: Bot, message: Message, filepath: String) -> HandlerResult {
+    info!("sending file=\"{}\" to chat_id={}", filepath, message.chat.id);
+    let file = InputFile::file(filepath);
+    bot.send_document(message.chat.id, file).send().await?;
+    Ok(())
+}
+
+async fn autonome_eliza(bot: Bot, message: Message) -> HandlerResult {
     if let Some(msg) = message.text() {
         info!("sending message=\"{}\" to agent...", msg);
 
@@ -33,7 +40,7 @@ async fn hello_world(bot: Bot, message: Message) -> HandlerResult {
 }
 
 fn handler_tree() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'static>> {
-    Update::filter_message().endpoint(hello_world)
+    Update::filter_message().endpoint(autonome_eliza)
 }
 
 pub async fn deploy() {
